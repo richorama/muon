@@ -1,0 +1,470 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Two10 Wiki</title>
+		<link href="http://portal.azurepackage.me/bootstrap.min.css" rel="stylesheet">
+		<link href="http://portal.azurepackage.me/bootstrap-responsive.css" rel="stylesheet">
+		<script src="http://two10ra.blob.core.windows.net/muon.min.js"></script>
+
+		<!--
+		<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+		<script src="http://jquery-xml2json-plugin.googlecode.com/svn/trunk/jquery.xml2json.js"></script>
+		<script src="http://cloud.github.com/downloads/wycats/handlebars.js/handlebars-1.0.rc.1.js"></script>
+		<script src="http://raw.github.com/coreyti/showdown/master/src/showdown.js"></script>
+	    <script src="http://documentcloud.github.com/underscore/underscore.js"></script>
+      	<script src="http://documentcloud.github.com/backbone/backbone.js"></script>
+		<script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+	-->
+		<style type="text/css" media="screen">
+		    #editor { 
+		        position: absolute;
+		        top: 0;
+		        right: 0;
+		        bottom: 1px;
+		        left: 1px;
+		    }
+			.ace_editor_wrapper {
+				height: 500px;
+				position: relative;
+				border: 1px solid #DDD;
+				border-radius: 4px;
+				border-bottom-right-radius: 0px;
+				margin-top: 5px;
+			}	
+			.toolbar {
+				background:whitesmoke;
+				margin-bottom:10px;
+			}	    
+			.toolbar-buttons{
+				float:left;
+				padding:9px;
+				font-size:26px;
+			}
+		</style>      	
+	</head>
+	<body>
+		<script>
+
+var pagesTemplate;
+var converter = new Showdown.converter();
+var user;
+var containerUrl;
+var baseUrl;
+var sas;
+var currentData;
+var canEdit = false;
+var authservice;
+var retrycount = 0;
+
+$(document).ready(function() {
+	$.ajax("/wiki-config.json", {dataType:"json", cache:true}).done(function(data){
+		authservice = data.authservice;
+		getSas(function(data){
+			render("hero-template", {});
+			Backbone.history.start();
+		});
+	});
+
+});
+
+function render(template, data){
+	var template = Handlebars.compile($("#" + template).html());
+	data.user = user;
+	data.canEdit = canEdit;
+	data.authservice = authservice;
+	$("#container").html(template(data));
+}
+
+
+function getSas(cb){
+	jsonp("login", function(data){
+		if (data.permission){
+			user = data.user;
+			containerUrl = data.url;		
+			sas = containerUrl.split("?")[1];
+			if (data.permission && data.permission.indexOf("w") != -1){
+				canEdit = true;
+			}
+			if (cb){
+				cb(data);
+			}
+		} else {
+			var message = {authservice:authservice};
+			if (data.failed == "permission"){
+				message.message = "You do not have permission to access this wiki. Sorry."
+			}
+			render("hero-template", message);
+		}
+	});
+}
+
+function jsonp(page, cb){
+    jQuery.ajax(authservice + page , {
+        cache:false,
+        dataType: "jsonp",
+        success: function(x){ 
+            if (cb){
+                cb(x);
+            }
+        }
+    });
+}
+
+function getWithRetry(url, cb, notFound){
+	$.ajax(url, {dataType:"text", headers:{"x-ms-version": "2011-08-18"}, cache:false})
+	.done(function(data){
+		retrycount = 0;
+		if (cb){
+			cb(data);
+		}
+	}).fail(function(x){
+		if (x.status == 404 && notFound){
+			notFound();
+			return;
+		}
+
+		if (retrycount == 4){
+			getSas(function(){
+				retrycount = 0;
+				setTimeout(function(){
+					getWithRetry(url,cb);
+				}, 250);
+			});
+		}
+		setTimeout(function(){
+			getWithRetry(url,cb);
+		}, 250);
+	});
+}
+
+function snapshot(url, cb){
+	$.ajax(url + "?comp=snapshot&" + sas, {headers:{"x-ms-version": "2011-08-18"}, type:"PUT"}).done(function(data){
+		cb();
+	});
+}
+
+function uploadContent(url, content, page, cb){
+
+	var headers = {};
+	if (user) {
+		headers["x-ms-meta-username"] = user.name;
+		headers["x-ms-meta-twitter"] = user.screen_name;
+	}
+
+	$.ajax(url, {dataType:"text", type:"PUT", data:content, headers:headers}).done(function(data){
+		cb();
+	});
+}
+
+function save(page){
+	var content = editor.getValue();
+	uploadContent("/wiki/" + page + "?" + sas, content, page, function(){
+		snapshot("/wiki/" + page, function(){});
+		Backbone.history.navigate("page/" + page, true); 			
+	});
+}
+
+function promote(page){
+	uploadContent("/wiki/" + page + "?" + sas, currentData, page, function(){
+		Backbone.history.navigate("page/" + page, true); 			
+	});
+}
+
+function deletePage(page, cb){
+	$.ajax("/wiki/" + page + "?" + sas, {type:"DELETE", headers:{"x-ms-delete-snapshots":"include", "x-ms-version": "2011-08-18"}}).done(function(){
+		Backbone.history.navigate("/", true); 
+	});
+}
+
+
+var editor;
+var AppRouter = Backbone.Router.extend({
+	routes: {
+		"page/:page": "page",
+		"edit/:page": "edit",
+		"snapshot/:snapshot/:page": "snapshot",
+		"history/:page": "history",
+		"" : "home",
+		"*page" : "page"
+	},
+	home: function(){
+		$("#mdhelp").hide();
+  		//$.ajax("/" + window.location.pathname.split("/")[1] + "?restype=container&comp=list", {dataType:"text"}).done(function(data){
+		retrycount = 0;
+  		getWithRetry(containerUrl + "&restype=container&comp=list", function(data){
+  			var json = $.xml2json(data);
+
+  			var items = [];
+  			json.Blobs.Blob.forEach(function(x){if (x.Name != "index.htm"){ items.push(x); }});
+
+  			render("page-template", {pages:items});
+  		});
+	},
+	page: function(page){
+		$("#mdhelp").hide();
+		render("markdown-template", {page:page});
+
+		retrycount = 0;
+		getWithRetry("/wiki/" + page + "?" + sas, function(data){
+			currentData = data;
+	  		var md = converter.makeHtml(data);
+	  		$("#md-container").html(md);
+	  	}, function(){
+	  		app_router.new(page);
+	  	});
+	},
+	snapshot: function(snapshot, page){
+		$("#mdhelp").hide();
+		render("snapshot-template", {page:page, snapshot:snapshot});
+
+		retrycount = 0;
+		getWithRetry("/wiki/" + page + "?" + sas + "&snapshot=" + snapshot, function(data){
+			currentData = data;
+	  		var md = converter.makeHtml(data);
+	  		$("#md-container").html(md);
+	  	}, function(){
+	  		app_router.new(page);
+	  	});
+	},	
+	edit: function(page){
+		if (user && !canEdit){
+			render("nopermission-template", {});
+			return;
+		}
+
+		retrycount = 0;
+		getWithRetry("/wiki/" + page + "?" + sas, function(data){
+			render("editor-template", {data:data, page:page});
+			currentData = data;
+			editor = ace.edit("editor");
+			editor.setShowPrintMargin(false);
+    		//editor.setTheme("ace/theme/twilight");
+    		$("#mdhelp").show();
+	  	});
+	},
+	new: function(page){
+		if (user && !canEdit){
+			render("nopermission-template", {});
+			return;
+		}
+
+  		render("new-template", {data:"", page:page});
+		editor = ace.edit("editor");
+		editor.setShowPrintMargin(false);
+		//editor.setTheme("ace/theme/twilight");
+		$("#mdhelp").show();
+	},
+	history: function(page){
+		$("#mdhelp").hide();		
+	  	getWithRetry(containerUrl + "&restype=container&comp=list&include=snapshots,metadata&prefix=" + page, function(data){
+	  		var items = [];
+	  		var json = $.xml2json(data);
+	  		if (json.Blobs && json.Blobs.Blob && $.isArray(json.Blobs.Blob)){
+	  			json.Blobs.Blob.forEach(function(x){
+	  				if (x.Name === page && x.Snapshot){
+	  					x.SnapshotArg = x.Snapshot.replace(/:/g, "%3a");
+		  				items.unshift(x)
+	  				}
+	  			});
+	  		} 
+	  		render("history-template", {versions:items, page:page});
+	  	});
+	}
+});
+
+var app_router = new AppRouter;
+
+
+		</script>
+		
+		<div class="container-fluid">
+			<div id="container"></div>
+	
+
+		<div class="row-fluid" style="display:none" id="mdhelp">
+			<h2>Help with Markdown</h2>
+			<strong>Links</strong>
+			
+<pre>To link to another page in the Wiki:
+[A Link](#ALink)
+ 
+To link to an external page:
+[Two10 Website](http://www.two10degrees.com) 
+</pre>
+
+			<strong>Formatting</strong>
+
+<pre># Main Heading
+## Sub Heading
+
+* Bullet
+* Points
+
+1. Numbered 
+1. List
+</pre>
+
+			<strong>Source Code</strong>
+<pre>```js
+function Hello(){
+	console.log("World");
+}
+```</pre>
+
+			</div>
+		</div>
+
+		<script id="hero-template" type="text/x-handlebars-template">
+            <div class="hero-unit">
+				<h1>Welcome to Muon</h1>
+				<p>The wiki built on <a href="http://www.windowsazure.com/">Windows Azure</a>.</p>
+				{{#if message}}
+					<div style="color:red">{{message}}</div>
+				{{else}}
+					<a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a>
+				{{/if}}
+			</div>
+		</script>
+
+		<script id="page-template" type="text/x-handlebars-template">
+            <div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><strong>Muon</strong></div>
+
+                {{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+                
+            </div>
+            <div class="row-fluid">
+                <h2>All pages in this Wiki</h2>
+			  	<ul>
+				  {{#each pages}}
+				  	<li><a href="#page/{{Name}}">{{Name}}</a></li>
+				  {{/each}}
+			  	</ul>
+		  	</div>
+		</script>
+
+		<script id="markdown-template" type="text/x-handlebars-template">
+            <div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><a href="#" class="btn btn-primary">All Pages</a> 
+                {{#if canEdit}}
+                	<a href="#edit/{{page}}" class="btn">Edit</a>
+                {{/if}}
+                <a href="#history/{{page}}" class="btn">History</a>
+		    	<strong>{{page}}</strong></div>
+                {{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+
+            </div>		
+			<div class="row-fluid" id="md-container">
+			</div>
+		</script>
+
+		<script id="editor-template" type="text/x-handlebars-template">
+		    <div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><a class="btn btn-primary" href="javascript:void(0);" onclick="save('{{page}}');">Save</a> <a href="#page/{{page}}" class="btn">Cancel</a> <a href="javascript:void(0);" onclick="deletePage('{{page}}');" class="btn btn-danger">Delete</a>
+		    	<strong>Edit {{page}}</strong></div>
+
+                {{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+            </div>
+            <div class="row-fluid">
+				<div class="ace_editor_wrapper"><div id="editor">{{data}}</div></div>
+			</div>
+		</script>
+
+		<script id="new-template" type="text/x-handlebars-template">
+
+            {{#if canEdit}}
+		    <div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><a class="btn btn-primary" href="javascript:void(0);" onclick="save('{{page}}');">Create</a> <a href="javascript:void(0);" onclick="window.history.back()" class="btn">Cancel</a>
+		    	<strong>Create {{page}}</strong></div>
+
+                {{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+            </div>
+            <div class="row-fluid">
+				<div class="ace_editor_wrapper"><div id="editor">{{data}}</div></div>
+			</div>
+			{{else}}
+				<div class="row-fluid toolbar">This page does not exist.</div>
+            {{/if}}
+
+		</script>
+
+		<script id="history-template" type="text/x-handlebars-template">
+            <div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><a href="#" class="btn btn-primary">All Pages</a></div>
+                {{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+
+            </div>
+            <div class="row-fluid">
+                <h2>{{page}} version history</h2>
+			  	<ul>
+			  		<li><a href="#page/{{page}}">Current</a></li>
+				  {{#each versions}}
+				  	<li>
+				  		<a href="#snapshot/{{SnapshotArg}}/{{Name}}">{{Snapshot}}</a>
+				  		{{#if Metadata.username}}
+							 by <a href="http://www.twitter.com/{{Metadata.twitter}}">{{Metadata.username}}</a>				  		
+				  		{{/if}}
+				  	</li>
+				  {{/each}}
+			  	</ul>
+		  	</div>
+		</script>
+
+		<script id="snapshot-template" type="text/x-handlebars-template">
+            <div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><a href="#" class="btn btn-primary">All Pages</a> 
+                <a href="#page/{{page}}" class="btn btn-primary">Current Version</a> 
+                <a href="#history/{{page}}" class="btn">History</a>
+                {{#if canEdit}}
+                	<a href="javascript:void(0);" onclick="promote('{{page}}');" class="btn btn-danger">Promote to current version</a> 
+                {{/if}}
+		    	<strong>Historical version of {{page}}</strong></div>
+
+		    	{{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+            </div>		
+			<div class="row-fluid" id="md-container">
+			</div>
+		</script>
+
+		<script id="nopermission-template" type="text/x-handlebars-template">
+
+  			<div class="row-fluid toolbar">
+                <div class="toolbar-buttons"><strong>Muon</strong></div>
+
+                {{#if user}}
+					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
+				{{else}}
+					<span class="toolbar-buttons" style="float:right"><a class="btn btn-success" href="{{authservice}}auth/twitter">Log in with Twitter</a></span>
+				{{/if}}
+            </div>
+            <div class="row-fluid">
+				<p style="color:red">Sorry, you don't have permission to do this.</p>
+		  	</div>		
+		</script>
+
+	</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "Two10Wiki",
+  "author": "Richard Astbury <richard.astbury@two10degrees.com>",
+  "version": "0.0.1",
+  "private": "true",
+  "dependencies": {
+    "express" : "*",
+    "azure" : "*",
+    "everyauth" : "git://github.com/bnoguchi/everyauth.git#express3",
+    "connect-bluesky" : "*"    
+  },
+  "engine": "node >= 0.8.14"
+}
