@@ -5,6 +5,9 @@
 		<link href="http://portal.azurepackage.me/bootstrap.min.css" rel="stylesheet">
 		<link href="http://portal.azurepackage.me/bootstrap-responsive.css" rel="stylesheet">
 		<script src="http://two10ra.blob.core.windows.net/muon.min.js"></script>
+		<script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-modal.js"></script>
+		<script src="https://raw.github.com/makeusabrew/bootbox/v3.0.0/bootbox.min.js"></script>
+
 
 		<!--
 		<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
@@ -57,10 +60,12 @@ var authservice;
 var retrycount = 0;
 
 $(document).ready(function() {
+	render("splash-template", {});
 	$.ajax("/wiki-config.json", {dataType:"json", cache:true}).done(function(data){
 		authservice = data.authservice;
 		getSas(function(data){
-			render("hero-template", {});
+			render("splash-template", {});
+			//render("hero-template", {});
 			Backbone.history.start();
 		});
 	});
@@ -176,6 +181,14 @@ function deletePage(page, cb){
 	});
 }
 
+function newPage(){
+	bootbox.prompt("Please enter a name for the page", function(result) {                
+		if (result) {                                             
+			app_router.new(result);
+		}
+	});
+}
+
 
 var editor;
 var AppRouter = Backbone.Router.extend({
@@ -195,7 +208,9 @@ var AppRouter = Backbone.Router.extend({
   			var json = $.xml2json(data);
 
   			var items = [];
-  			json.Blobs.Blob.forEach(function(x){if (x.Name != "index.htm"){ items.push(x); }});
+  			if (json.Blobs.Blob){
+	  			json.Blobs.Blob.forEach(function(x){if (x.Name != "index.htm"){ items.push(x); }});
+	  		}
 
   			render("page-template", {pages:items});
   		});
@@ -239,6 +254,7 @@ var AppRouter = Backbone.Router.extend({
 			editor = ace.edit("editor");
 			editor.setShowPrintMargin(false);
     		//editor.setTheme("ace/theme/twilight");
+    		editor.focus();
     		$("#mdhelp").show();
 	  	});
 	},
@@ -252,6 +268,7 @@ var AppRouter = Backbone.Router.extend({
 		editor = ace.edit("editor");
 		editor.setShowPrintMargin(false);
 		//editor.setTheme("ace/theme/twilight");
+		editor.focus();
 		$("#mdhelp").show();
 	},
 	history: function(page){
@@ -314,6 +331,13 @@ function Hello(){
 			</div>
 		</div>
 
+		<script id="splash-template" type="text/x-handlebars-template">
+            <div class="hero-unit">
+				<h1>Welcome to Muon</h1>
+				<p>The wiki built on <a href="http://www.windowsazure.com/">Windows Azure</a>.</p>
+			</div>
+		</script>
+
 		<script id="hero-template" type="text/x-handlebars-template">
             <div class="hero-unit">
 				<h1>Welcome to Muon</h1>
@@ -328,7 +352,12 @@ function Hello(){
 
 		<script id="page-template" type="text/x-handlebars-template">
             <div class="row-fluid toolbar">
-                <div class="toolbar-buttons"><strong>Muon</strong></div>
+                <div class="toolbar-buttons">
+                	<strong>Muon</strong>
+                	{{#if canEdit}}
+                		<a href="javascript:void(0);" onclick="newPage();" class="btn">New Page</a>
+                	{{/if}}
+                </div>
 
                 {{#if user}}
 					<span style="float:right">{{user.name}} <img src="{{user.profile_image_url}}"/></span>
@@ -352,6 +381,7 @@ function Hello(){
                 <div class="toolbar-buttons"><a href="#" class="btn btn-primary">All Pages</a> 
                 {{#if canEdit}}
                 	<a href="#edit/{{page}}" class="btn">Edit</a>
+                	<a href="javascript:void(0);" onclick="newPage();" class="btn">New Page</a>
                 {{/if}}
                 <a href="#history/{{page}}" class="btn">History</a>
 		    	<strong>{{page}}</strong></div>
