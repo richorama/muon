@@ -209,7 +209,11 @@ var AppRouter = Backbone.Router.extend({
 
   			var items = [];
   			if (json.Blobs.Blob){
-	  			json.Blobs.Blob.forEach(function(x){if (x.Name != "index.htm"){ items.push(x); }});
+  				if ($.isArray(json.Blobs.Blob)){
+		  			json.Blobs.Blob.forEach(function(x){if (x.Name != "index.htm"){ items.push(x); }});
+  				} else {
+  					items.push(json.Blobs.Blob);
+  				}
 	  		}
 
   			render("page-template", {pages:items});
