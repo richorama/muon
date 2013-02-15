@@ -6,7 +6,7 @@
   "dependencies": {
     "express" : "*",
     "azure" : "*",
-    "everyauth" : "git://github.com/bnoguchi/everyauth.git#express3",
+    "everyauth" : "https://github.com/bnoguchi/everyauth/tarball/express3",
     "connect-bluesky" : "*"    
   },
   "engine": "node >= 0.8.14"

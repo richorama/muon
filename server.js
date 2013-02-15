@@ -56,18 +56,18 @@ if (process.env.TWITTERKEY && process.env.TWITTERSECRET){
 app.enable("jsonp callback");
 
 if (storageAccount && storageKey){
-app.use(express.bodyParser())
-  .use(express.cookieParser('c390ceec-dbc0-47b0-8c79-b8d208048ee0'))
-  .use(express.session({
-    secret: 'baabb5ff-4044-4939-ac9c-39b4d8c90218', 
-    store: new BlueskyStore({
-      account: storageAccount,
-      key: storageKey,
-      table: 'expresssession'
-    })
-  }))
-  .use(everyauth.middleware(app)
-  .use(app.router));
+  app.use(express.bodyParser())
+    .use(express.cookieParser('c390ceec-dbc0-47b0-8c79-b8d208048ee0'))
+    .use(express.session({
+      secret: 'baabb5ff-4044-4939-ac9c-39b4d8c90218', 
+      store: new BlueskyStore({
+        account: storageAccount,
+        key: storageKey,
+        table: 'expresssession'
+      })
+    }))
+    .use(everyauth.middleware(app)
+    .use(app.router));
 }
 
 // express routes
