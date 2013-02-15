@@ -76,10 +76,10 @@ __storageaccount__ : The name of your window Azure Storage Account
 
 __storagekey__ : The key for your window Azure Storage Account
 
-__readers__ : '*' to allow public read access, otherwise a comma separated list of twitter usernames for read access
+__readers__ : * to allow public read access, otherwise a comma separated list of twitter usernames for read access
 
-__editors__ : '*' to allow public write access, otherwise a comma separated list of twitter usernames for write access
+__editors__ : * to allow public write access, otherwise a comma separated list of twitter usernames for write access
 
 __twitterkey__ : The key for an app you have registered in twitter (only required if you don't have * for editors and readers)
 
-__twitterkey__ : The secret for an app you have registered in twitter (only required if you don't have * for editors and readers)
+__twittersecret__ : The secret for an app you have registered in twitter (only required if you don't have * for editors and readers)
