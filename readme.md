@@ -14,13 +14,13 @@ Prerequisites:
 
  * A Windows Azure Account
  * Git
- * (optional) A [https://dev.twitter.com](twitter developer) account
- * (optional) [https://github.com/windowsazure/azure-sdk-tools-xplat](Windows Azure CLI tool for Mac and Linux) (also works on Windows!)
+ * (optional) A [twitter developer](https://dev.twitter.com) account
+ * (optional) [Windows Azure CLI tool for Mac and Linux](https://github.com/windowsazure/azure-sdk-tools-xplat) (also works on Windows!)
 
 
 # 1. Create a storage account in Windows Azure
 
-You can either do this in the [https://manage.windowsazure.com/#Workspace/StorageExtension/storage](Portal), or using the terminal:
+You can either do this in the [Portal](https://manage.windowsazure.com/#Workspace/StorageExtension/storage), or using the terminal:
 
 ```
 azure account storage create --location "North Europe" THE_NAME_OF_YOUR_STORAGE_ACCOUNT
@@ -28,7 +28,7 @@ azure account storage create --location "North Europe" THE_NAME_OF_YOUR_STORAGE_
 
 # 2. Create a website
 
-You can either do this in the [https://manage.windowsazure.com/#Workspace/WebsiteExtension/websites](Portal), or using the terminal. You must enable Git publishing.
+You can either do this in the [Portal](https://manage.windowsazure.com/#Workspace/WebsiteExtension/websites), or using the terminal. You must enable Git publishing.
 
 ```
 azure site create NAME_OF_YOUR_WEBSITE --git --location "North Europe"
