@@ -7,6 +7,8 @@ BlueskyStore = require('connect-bluesky')(express);
 var storageAccount = process.env.STORAGEACCOUNT;
 var storageKey = process.env.STORAGEKEY;
 
+var notSetupCorrectly = (!process.env.EDITORS || !process.env.READERS || !process.env.STORAGEACCOUNT || !process.env.STORAGEKEY);
+
 var editors = {};
 (process.env.EDITORS || "").split(",").forEach(function(username){
   editors[username.trim().toLowerCase()] = true;
@@ -17,15 +19,19 @@ var readers = {};
   readers[username.trim().toLowerCase()] = true;
 });
 
-var blobService = azure.createBlobService(storageAccount, storageKey);
-blobService.createContainerIfNotExists("wiki", function(error){});
-blobService.createContainerIfNotExists("wikicontent", function(error){});
-blobService.createContainerIfNotExists("wikiusers", function(error){});
-blobService.createContainerIfNotExists("$root", {publicAccessLevel:"blob"}, function(error){
-  blobService.createBlockBlobFromFile("$root", "index.htm", "index.htm", function(error){});
-  var json = { authservice: "http://" + process.env.APP_POOL_ID + ".azurewebsites.net/" };
-  blobService.createBlockBlobFromText("$root", "wiki-config.json", JSON.stringify(json), function(error){});
-});
+if (storageAccount && storageKey){
+  var blobService = azure.createBlobService(storageAccount, storageKey);
+  blobService.createContainerIfNotExists("wiki", function(error){});
+  //blobService.createContainerIfNotExists("wikicontent", function(error){});
+  blobService.createContainerIfNotExists("wikiusers", function(error){});
+  blobService.createContainerIfNotExists("$root", {publicAccessLevel:"blob"}, function(error){
+    blobService.createBlockBlobFromFile("$root", "index.htm", "index.htm", function(error){});
+    var json = { authservice: "http://" + process.env.APP_POOL_ID + ".azurewebsites.net/" };
+    blobService.createBlockBlobFromText("$root", "wiki-config.json", JSON.stringify(json), function(error){});
+  });
+}
+
+
 
 // configure everyauth
 everyauth.everymodule
@@ -34,7 +40,8 @@ everyauth.everymodule
     //callback(null, usersByTwitId[id]);
   });
 
-everyauth
+if (process.env.TWITTERKEY && process.env.TWITTERSECRET){
+  everyauth
   .twitter
     .consumerKey(process.env.TWITTERKEY)
     .consumerSecret(process.env.TWITTERSECRET)
@@ -43,9 +50,12 @@ everyauth
       return {id:"twitter_" + twitUser.id_str};
     })
     .redirectPath('http://' + storageAccount + '.blob.core.windows.net/index.htm');
+}
 
 
 app.enable("jsonp callback");
+
+if (storageAccount && storageKey){
 app.use(express.bodyParser())
   .use(express.cookieParser('c390ceec-dbc0-47b0-8c79-b8d208048ee0'))
   .use(express.session({
@@ -58,6 +68,7 @@ app.use(express.bodyParser())
   }))
   .use(everyauth.middleware(app)
   .use(app.router));
+}
 
 // express routes
 app.get("/login", function(req, res){
@@ -101,6 +112,11 @@ app.get("/login", function(req, res){
 });
 
 app.get("/", function(req, res){
+  if (notSetupCorrectly) {
+    res.end("<html><body>Please set up Muon correctly<br/><br/><a href='https://github.com/richorama/muon#4-configure-muon'>Configure Muon</a></body></html>");
+    return;
+  }
+
   res.redirect('http://' + storageAccount + '.blob.core.windows.net/index.htm');
 })
 

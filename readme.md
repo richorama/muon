@@ -88,4 +88,4 @@ __twittersecret__ : The secret for an app you have registered in twitter (only r
 
 The portal should look something like this:
 
-![Screenshot of the Windows Azure Portal](http://wp.me/a17TJV-bl)
+![Screenshot of the Windows Azure Portal](http://coderead.wordpress.com/?attachment_id=703)
