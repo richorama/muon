@@ -8,6 +8,8 @@
 	   Windows Azure Storage
 ```
 
+Try Muon out (read only): [http://muon.azurewebsites.net](http://muon.azurewebsites.net)
+
 # Features
 
  1. Directly upload/download content from Azure Storage, allowing high scale at low cost.
@@ -88,4 +90,4 @@ __twittersecret__ : The secret for an app you have registered in twitter (only r
 
 The portal should look something like this:
 
-![Screenshot of the Windows Azure Portal](http://coderead.wordpress.com/?attachment_id=703)
+![Screenshot of the Windows Azure Portal](http://coderead.files.wordpress.com/2013/02/untitled.png)
