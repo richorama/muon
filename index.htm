@@ -105,6 +105,9 @@ function getSas(cb){
 			if (data.failed == "permission"){
 				message.message = "You do not have permission to access this wiki. Sorry."
 			}
+			if (data.failed == "login"){
+				message.message = "Failed to log into Twitter. Sorry."
+			}
 			render("hero-template", message);
 		}
 	});
