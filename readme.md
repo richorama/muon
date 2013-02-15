@@ -8,7 +8,15 @@
 	   Windows Azure Storage
 ```
 
-# Installation instructions.
+# Features
+
+ 1. Directly upload/download content from Azure Storage, allowing high scale at low cost.
+ 1. Integrates with twitter for authentication.
+ 1. Allow public read/write access, or limit access to selected users.
+ 1. Use markdown to edit articles.
+ 1. Ideal for small teams to collaborate on documentation.
+
+# Installation instructions
 
 Prerequisites:
 
@@ -18,23 +26,23 @@ Prerequisites:
  * (optional) [Windows Azure CLI tool for Mac and Linux](https://github.com/windowsazure/azure-sdk-tools-xplat) (also works on Windows!)
 
 
-## 1. Create a storage account in Windows Azure
+### 1. Create a storage account in Windows Azure
 
-You can either do this in the [Portal](https://manage.windowsazure.com/#Workspace/StorageExtension/storage), or using the terminal:
+You can either do this in the [Portal](https://manage.windowsazure.com/#Workspace/StorageExtension/storage), or using the command line:
 
 ```
 azure account storage create --location "North Europe" THE_NAME_OF_YOUR_STORAGE_ACCOUNT
 ```
 
-## 2. Create a website
+### 2. Create a website
 
-You can either do this in the [Portal](https://manage.windowsazure.com/#Workspace/WebsiteExtension/websites), or using the terminal. You must enable Git publishing.
+You can either do this in the [Portal](https://manage.windowsazure.com/#Workspace/WebsiteExtension/websites), or using the command line. You must enable Git publishing.
 
 ```
 azure site create NAME_OF_YOUR_WEBSITE --git --location "North Europe"
 ```
 
-## 3. Deploy the website
+### 3. Deploy the website
 
 Use git to clone Muon, and publish it to your website:
 
@@ -45,7 +53,7 @@ git remote add azure https://NAME_OF_YOUR_WEBSITE.scm.azurewebsites.net/NAME_OF_
 git push azure master
 ```
 
-## 4. Configure Muon
+### 4. Configure Muon
 
 Muon uses a number of app setting to configure the permissions and settings. You can create these on the command line:
 
