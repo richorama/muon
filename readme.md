@@ -4,8 +4,7 @@
 	| | | | | | |_| | (_) | | | |
 	|_| |_| |_|\__,_|\___/|_| |_|
 
-	The lightweight wiki based on 
-	   Windows Azure Storage
+   The wiki built on Windows Azure 
 ```
 
 Try Muon out (read only): [http://muon.azurewebsites.net](http://muon.azurewebsites.net)
