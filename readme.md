@@ -14,7 +14,8 @@
  1. Integrates with twitter for authentication.
  1. Allow public read/write access, or limit access to selected users.
  1. Use markdown to edit articles.
- 1. Ideal for small teams to collaborate on documentation.
+ 1. Ideal for small teams collaborating on documentation.
+ 1. It's really fast and simple!
 
 # Installation instructions
 
@@ -55,7 +56,7 @@ git push azure master
 
 ### 4. Configure Muon
 
-Muon uses a number of app setting to configure the permissions and settings. You can create these on the command line:
+Muon uses a number of app settings to configure the permissions and settings. You can create these on the command line or enter them into the Portal:
 
 ```
 setlocal
@@ -63,9 +64,22 @@ set site=NAME_OF_YOUR_WEBSITE
 
 azure site config add storageaccount=THE_NAME_OF_YOUR_STORAGE_ACCOUNT %site%
 azure site config add storagekey=YOUR_STORAGE_KEY %SITE%
-azure site config add twitterkey=TWITTER_APP_KEY %site%
-azure site config add twittersecret=TWITTER_APP_SECRET %site%
 azure site config add readers=* %site%
 azure site config add editors=* %site%
+azure site config add twitterkey=TWITTER_APP_KEY %site%
+azure site config add twittersecret=TWITTER_APP_SECRET %site%
 ```
 
+The setting are as follows:
+
+__storageaccount__ : The name of your window Azure Storage Account
+
+__storagekey__ : The key for your window Azure Storage Account
+
+__readers__ : '*' to allow public read access, otherwise a comma separated list of twitter usernames for read access
+
+__editors__ : '*' to allow public write access, otherwise a comma separated list of twitter usernames for write access
+
+__twitterkey__ : The key for an app you have registered in twitter (only required if you don't have * for editors and readers)
+
+__twitterkey__ : The secret for an app you have registered in twitter (only required if you don't have * for editors and readers)
