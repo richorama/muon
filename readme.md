@@ -26,6 +26,7 @@ Prerequisites:
  * (optional) A [twitter developer](https://dev.twitter.com) account
  * (optional) [Windows Azure CLI tool for Mac and Linux](https://github.com/windowsazure/azure-sdk-tools-xplat) (also works on Windows!)
 
+The application will use Twitter to authenticate users (unless you choose to make the wiki fully public read/write access). You will need to sign up for a twitter developer account, and register an application. Your application key and secret can then be used for Muon.
 
 ### 1. Create a storage account in Windows Azure
 
@@ -83,3 +84,8 @@ __editors__ : * to allow public write access, otherwise a comma separated list o
 __twitterkey__ : The key for an app you have registered in twitter (only required if you don't have * for editors and readers)
 
 __twittersecret__ : The secret for an app you have registered in twitter (only required if you don't have * for editors and readers)
+
+
+The portal should look something like this:
+
+![Screenshot of the Windows Azure Portal](http://wp.me/a17TJV-bl)
